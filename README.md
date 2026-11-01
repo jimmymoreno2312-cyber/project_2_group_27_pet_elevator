@@ -68,11 +68,13 @@ project_2_group_27_pet_elevator/   (repo root)
 │   │   └── my_timer.c    # /proc/timer kernel module
 │   └── Makefile          # produces my_timer.ko
 └── part3/
-    ├── src/              # elevator module (not started yet)
+    ├── src/
+    │   └── elevator.c    # elevator kernel module (kthread, mutex, linked lists, /proc/elevator)
+    ├── syscalls.c        # kernel-side system calls 548-550 (copied into the kernel tree)
+    ├── patch_kernel.sh   # applies syscalls.c and the kernel edits (Part 3a)
     ├── tests/            # provided producer/consumer and syscall tests
-    └── Makefile
+    └── Makefile          # produces elevator.ko
 ```
-`part3/syscalls.c` is also required by the spec and has not been added yet.
 
 # How to Compile & Execute
 
@@ -124,19 +126,54 @@ sudo rmmod my_timer
 
 ## Part 3
 
+### Adding the system calls to the kernel (done once, on the 6.16.x source)
+`part3/syscalls.c` is the kernel side of the system calls. They forward to function pointers
+(`STUB_*`) that `elevator.ko` fills in when it is loaded. Run the helper script on the extracted
+kernel source (it is safe to run twice and changes nothing if a file does not look as expected):
+```bash
+cd part3
+./patch_kernel.sh ~/linux-6.16.x
+```
+It performs these steps, which can also be done by hand in the kernel tree (`[kernel_version]`):
+1. Create `syscalls/` and copy `part3/syscalls.c` into it, plus a `syscalls/Makefile` containing
+   `obj-y := syscalls.o`.
+2. Add `obj-y += syscalls/` to the kernel's top-level `Kbuild` file (older kernels: add `syscalls/` to the
+   `core-y +=` line of the top-level `Makefile`).
+3. Add to `arch/x86/entry/syscalls/syscall_64.tbl`:
+   `548 common start_elevator sys_start_elevator`, `549 common issue_request sys_issue_request`,
+   `550 common stop_elevator sys_stop_elevator`.
+4. Add the three `asmlinkage long sys_...` prototypes to `include/linux/syscalls.h`.
+5. Compile and install the kernel (`make menuconfig`, `make -j$(nproc)`, `sudo make modules_install`,
+   `sudo make install`, `sudo reboot`) and check it with `uname -r`.
+
 ### Compilation
-Part 3 is not implemented yet. It will be built with `make` in `part3/`, producing `elevator.ko`
-and the `syscalls.ko` test module.
+Boot the custom kernel, then:
+```bash
+cd part3
+make
+```
+This builds `part3/elevator.ko`. It only loads on a kernel that contains the system calls above.
 
 ### Execution
 ```bash
 sudo insmod elevator.ko
-./producer [number_of_pets]
-./consumer --start
+cd tests/elevator-test && make     # builds producer and consumer
+./consumer --start                 # start the elevator
+./producer 10                      # create 10 random pets
 watch -n 1 cat /proc/elevator
-./consumer --stop
-sudo rmmod elevator
+./consumer --stop                  # offload current pets, then go OFFLINE
+cd ../.. && sudo rmmod elevator
 ```
+To check the system calls alone, load `tests/system-calls-test/syscheck.ko` instead of `elevator.ko`
+and run `./test-syscalls`.
+
+### Design
+- One mutex protects every shared value (floor lists, passenger list, state, counters).
+- A single kthread moves the elevator: unload, load (FIFO, 5 pets / 50 lbs), then pick a direction
+  (keep going while pets are ahead, otherwise reverse). It waits 2 s per floor and 1 s per load.
+- `stop_elevator` stops new boardings; the elevator delivers its passengers and then goes OFFLINE.
+- `issue_request` returns 1 for an invalid request (floor outside 1-5, same start and destination,
+  or unknown type) and 0 otherwise.
 
 ## Development Log
 Each member records their contributions here.
@@ -153,6 +190,7 @@ Each member records their contributions here.
 |------------|------------------------|
 | 2026-11-01 | Part 1: wrote `empty.c`, `part1.c` and Makefile; verified `part1.trace` has 5 more syscalls than `empty.trace`. |
 | 2026-11-01 | Part 2: scaffolded `my_timer` module and Makefile; compiles against the installed kernel headers. |
+| 2026-11-01 | Part 3: drafted `part3/syscalls.c` and the `elevator` module (`part3/src/elevator.c`); compiles, not yet run on the custom kernel. |
 | 2026-11-01 | Updated this README with group members and division of labor. |
 
 ### Sarah
