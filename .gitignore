@@ -1,0 +1,12 @@
+# Build output - the spec deducts points for binaries/modules in the repo
+*.o
+*.ko
+*.mod
+*.mod.c
+*.cmd
+.*.cmd
+modules.order
+Module.symvers
+.tmp_versions/
+**/part1/empty
+**/part1/part1

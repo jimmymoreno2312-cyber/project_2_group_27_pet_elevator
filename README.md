@@ -1,2 +1,178 @@
-# project_2_group_27_pet_elevator
+# Elevator
 
+A pet elevator for the Linux kernel (COP4610 Project 2, Group 27). The project has three parts:
+tracing system calls with `strace`, a `my_timer` kernel module that exposes `/proc/timer`, and an
+`elevator` kernel module that schedules pets (Chihuahua, Pug, Pughuahua, Dachshund) between floors
+1-5 using three new system calls (548 `start_elevator`, 549 `issue_request`, 550 `stop_elevator`).
+The elevator holds at most 5 pets / 50 lbs and reports its state through `/proc/elevator`.
+
+## Group Members
+- **Pedro**: [email]
+- **Jimmy**: [email]
+- **Sarah**: [email]
+
+## Division of Labor
+
+### Part 1: System Call Tracing
+- **Responsibilities**: Write an empty C program and a copy (`part1.c`) that makes exactly five
+  additional system calls, then capture both `strace` outputs to verify the difference.
+- **Assigned to**: Pedro, Jimmy
+
+### Part 2: Timer Kernel Module
+- **Responsibilities**: Write the `my_timer` module that creates `/proc/timer` on load, removes it on
+  unload, and prints the current time and time elapsed since the last read.
+- **Assigned to**: Jimmy, Sarah
+
+### Part 3a: Adding System Calls
+- **Responsibilities**: Implement `start_elevator`, `issue_request` and `stop_elevator` in the kernel
+  (`syscalls.c`, `syscall_64.tbl`, `syscalls.h`, kernel `Makefile`).
+- **Assigned to**: Sarah, Pedro
+
+### Part 3b: Kernel Compilation
+- **Responsibilities**: Download Linux 6.16.x, configure, compile and install it with the new system
+  calls, and verify the install with `uname -r`.
+- **Assigned to**: Pedro, Jimmy
+
+### Part 3c: Threads
+- **Responsibilities**: Create the kthread that controls elevator movement and its start/stop lifecycle.
+- **Assigned to**: Jimmy, Sarah
+
+### Part 3d: Linked List
+- **Responsibilities**: Store the pets waiting on each floor and the pets on the elevator in linked
+  lists (`linux/list.h`), with pets allocated using `kmalloc`.
+- **Assigned to**: Sarah, Pedro
+
+### Part 3e: Mutexes
+- **Responsibilities**: Protect data shared between the system calls, the kthread and the proc file
+  with a mutex.
+- **Assigned to**: Pedro, Jimmy
+
+### Part 3f: Scheduling Algorithm
+- **Responsibilities**: Decide which direction to move and which pets to load/unload, respecting the
+  5 pet / 50 lb limit, FIFO boarding and the non-circular floors.
+- **Assigned to**: Jimmy, Sarah
+
+## File Listing
+```
+project_2_group_27_pet_elevator/   (repo root)
+├── Makefile              # builds part1, part2 and part3
+├── README.md
+├── part1/
+│   ├── empty.c           # empty program (baseline)
+│   ├── empty.trace       # strace output of empty
+│   ├── part1.c           # empty + exactly five system calls
+│   ├── part1.trace       # strace output of part1
+│   └── Makefile
+├── part2/
+│   ├── src/
+│   │   └── my_timer.c    # /proc/timer kernel module
+│   └── Makefile          # produces my_timer.ko
+└── part3/
+    ├── src/              # elevator module (not started yet)
+    ├── tests/            # provided producer/consumer and syscall tests
+    └── Makefile
+```
+`part3/syscalls.c` is also required by the spec and has not been added yet.
+
+# How to Compile & Execute
+
+### Requirements
+- **Compiler**: `gcc` and `make`
+- **Tools**: `strace` (Part 1)
+- **Kernel**: Part 2 and Part 3 need the headers of the running kernel
+  (`/lib/modules/$(uname -r)/build`). Part 3 also needs the custom Linux 6.16.x kernel with the new
+  system calls installed.
+
+Running `make` in the repo root builds every part; `make clean` removes build output.
+
+## Part 1
+
+### Compilation
+```bash
+cd part1
+make
+```
+This builds `empty` and `part1` in `part1/` and runs both under `strace`, writing `empty.trace` and
+`part1.trace`.
+
+### Execution
+```bash
+diff <(wc -l < empty.trace) <(wc -l < part1.trace)
+```
+`part1.trace` must have exactly five more lines than `empty.trace` (the calls are `getpid`,
+`getppid`, `getuid`, `getgid`, `geteuid`). `make clean` deletes the executables and keeps the traces.
+
+## Part 2
+
+### Compilation
+```bash
+cd part2
+make
+```
+This builds the kernel module `part2/my_timer.ko`. Note that kernel builds fail if the path to the
+project contains spaces.
+
+### Execution
+```bash
+sudo insmod my_timer.ko
+lsmod | grep my_timer
+cat /proc/timer        # current time
+sleep 1; cat /proc/timer   # current time and elapsed time since the previous read
+sudo rmmod my_timer
+```
+`/proc/timer` exists only while the module is loaded.
+
+## Part 3
+
+### Compilation
+Part 3 is not implemented yet. It will be built with `make` in `part3/`, producing `elevator.ko`
+and the `syscalls.ko` test module.
+
+### Execution
+```bash
+sudo insmod elevator.ko
+./producer [number_of_pets]
+./consumer --start
+watch -n 1 cat /proc/elevator
+./consumer --stop
+sudo rmmod elevator
+```
+
+## Development Log
+Each member records their contributions here.
+
+### Pedro
+
+| Date       | Work Completed / Notes |
+|------------|------------------------|
+| YYYY-MM-DD | [Description of task]  |
+
+### Jimmy
+
+| Date       | Work Completed / Notes |
+|------------|------------------------|
+| 2026-11-01 | Part 1: wrote `empty.c`, `part1.c` and Makefile; verified `part1.trace` has 5 more syscalls than `empty.trace`. |
+| 2026-11-01 | Part 2: scaffolded `my_timer` module and Makefile; compiles against the installed kernel headers. |
+| 2026-11-01 | Updated this README with group members and division of labor. |
+
+### Sarah
+
+| Date       | Work Completed / Notes |
+|------------|------------------------|
+| YYYY-MM-DD | [Description of task]  |
+
+
+## Meetings
+Document in-person meetings, their purpose, and what was discussed.
+
+| Date       | Attendees            | Topics Discussed | Outcomes / Decisions |
+|------------|----------------------|------------------|-----------------------|
+| YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
+
+## Bugs
+- None known yet. Part 2 has only been compiled, not yet loaded and tested on the 6.16.x kernel.
+
+## Considerations
+- Build the kernel in a VM and take a snapshot first, so a broken kernel can be rolled back.
+- Kernel modules cannot be built from a path containing spaces, so the project must live in a
+  directory without spaces when running `make` for Part 2 and Part 3.
