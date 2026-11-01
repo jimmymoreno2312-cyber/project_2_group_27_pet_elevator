@@ -43,15 +43,17 @@ DIR_LINE=
 DIR_STYLE=
 if grep -Eqs '^(obj-y|core-y)[[:space:]]*\+=.*(^|[[:space:]])syscalls/' "$KBUILD" "$MAKEFILE"; then
 	:	# already listed
-elif DIR_LINE=$(grep -n -E -m1 '^obj-y[[:space:]]*\+=[[:space:]]*kernel/[[:space:]]*$' "$KBUILD" 2>/dev/null | cut -d: -f1) &&
-     [ -n "$DIR_LINE" ]; then
+elif DIR_LINE=$(grep -n -E -m1 '^obj-y[[:space:]]*\+=[[:space:]]*kernel/[[:space:]]*$' \
+		"$KBUILD" 2>/dev/null | cut -d: -f1) && [ -n "$DIR_LINE" ]; then
 	DIR_FILE=$KBUILD
 	DIR_STYLE=obj-y
 else
-	DIR_LINE=$(grep -n -E -m1 '^core-y[[:space:]]*\+=.*[[:space:]]kernel/' "$MAKEFILE" | cut -d: -f1 || true)
-	[ -n "$DIR_LINE" ] || die "found neither 'obj-y += kernel/' in $KBUILD nor 'core-y += kernel/ ...' in $MAKEFILE; add syscalls/ to the kernel's directory list by hand"
+	DIR_LINE=$(grep -n -E -m1 '^core-y[[:space:]]*\+=.*[[:space:]]kernel/' "$MAKEFILE" |
+		cut -d: -f1 || true)
+	[ -n "$DIR_LINE" ] || die "no 'obj-y += kernel/' in Kbuild or 'core-y += kernel/' in" \
+		"Makefile; add syscalls/ to the kernel's directory list by hand"
 	if sed -n "${DIR_LINE}p" "$MAKEFILE" | grep -q '\\$'; then
-		die "the core-y line in $MAKEFILE continues onto the next line; add 'syscalls/' by hand"
+		die "the core-y line in Makefile continues on the next line; add syscalls/ by hand"
 	fi
 	DIR_FILE=$MAKEFILE
 	DIR_STYLE=core-y
@@ -63,7 +65,8 @@ if ! grep -q 'sys_start_elevator' "$HDR"; then
 	[ -n "$HDR_END" ] || die "no closing #endif found in $HDR"
 fi
 
-VERSION=$(sed -n -e 's/^VERSION = //p' -e 's/^PATCHLEVEL = //p' -e 's/^SUBLEVEL = //p' "$MAKEFILE" | paste -sd.)
+VERSION=$(sed -n -e 's/^VERSION = //p' -e 's/^PATCHLEVEL = //p' -e 's/^SUBLEVEL = //p' \
+	"$MAKEFILE" | paste -sd. -)
 echo "Kernel tree: $KDIR (version ${VERSION:-unknown})"
 
 backup() { [ -e "$1.pre-elevator" ] || cp -p "$1" "$1.pre-elevator"; }
@@ -126,7 +129,7 @@ cat <<NEXT_STEPS
 
 Done. Next steps (see README, Part 3):
   cd $KDIR
-  # if the build stops on certificates, disable them first:
+  cp /boot/config-\$(uname -r) .config && make olddefconfig
   scripts/config --disable SYSTEM_TRUSTED_KEYS --disable SYSTEM_REVOCATION_KEYS
   make menuconfig && make -j\$(nproc)
   sudo make modules_install && sudo make install && sudo reboot

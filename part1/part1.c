@@ -6,10 +6,10 @@
 
 int main(void)
 {
-	getpid();	/* getpid  */
-	getppid();	/* getppid */
-	getuid();	/* getuid  */
-	getgid();	/* getgid  */
-	geteuid();	/* geteuid */
+	getpid();
+	getppid();
+	getuid();
+	getgid();
+	geteuid();
 	return 0;
 }
