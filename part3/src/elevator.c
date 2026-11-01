@@ -300,10 +300,10 @@ static int elevator_show(struct seq_file *m, void *v)
 		count = 0;
 		list_for_each_entry(p, &waiting[floor], node)
 			count++;
-		seq_printf(m, "Floor %d: %d", floor, count);
+		seq_printf(m, "[%c] Floor %d: %d", floor == cur_floor ? '*' : ' ', floor, count);
 		list_for_each_entry(p, &waiting[floor], node)
 			seq_printf(m, " %c%d", pet_letter[p->type], p->dest_floor);
-		seq_printf(m, " [%c]\n", floor == cur_floor ? '*' : ' ');
+		seq_putc(m, '\n');
 	}
 
 	seq_printf(m, "Number of pets: %d\n", num_passengers);
@@ -350,13 +350,21 @@ static int __init elevator_init(void)
 
 static void __exit elevator_exit(void)
 {
+	struct task_struct *task;
+
 	STUB_start_elevator = NULL;
 	STUB_issue_request = NULL;
 	STUB_stop_elevator = NULL;
 	remove_proc_entry(PROC_NAME, NULL);
 
-	if (elevator_task)
-		kthread_stop(elevator_task);
+	mutex_lock(&elev_lock);
+	task = elevator_task;
+	elevator_task = NULL;
+	mutex_unlock(&elev_lock);
+
+	/* Must not hold elev_lock here: the thread may need it to reach its stop check. */
+	if (task)
+		kthread_stop(task);
 
 	mutex_lock(&elev_lock);
 	free_all_pets();

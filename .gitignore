@@ -10,3 +10,8 @@ Module.symvers
 .tmp_versions/
 **/part1/empty
 **/part1/part1
+**/elevator-test/producer
+**/elevator-test/consumer
+**/system-calls-test/test-syscalls
+**/system-calls-test/test_syscalls
+.DS_Store
