@@ -156,6 +156,7 @@ static int elevator_run(void *data)
 {
 	int last_dir = 1;
 	int dir;
+	int moved;
 
 	while (!kthread_should_stop()) {
 		mutex_lock(&elev_lock);
@@ -169,7 +170,10 @@ static int elevator_run(void *data)
 		}
 
 		/* Unload (and load, unless stopping) at the current floor. */
-		if (unload_pets() + (stopping ? 0 : load_pets()) > 0) {
+		moved = unload_pets();
+		if (!stopping)
+			moved += load_pets();
+		if (moved > 0) {
 			state = LOADING;
 			mutex_unlock(&elev_lock);
 			elevator_sleep(LOAD_SECS);
