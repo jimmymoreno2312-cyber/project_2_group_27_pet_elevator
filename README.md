@@ -237,7 +237,9 @@ Each member records their contributions here.
 
 | Date       | Work Completed / Notes |
 |------------|------------------------|
-| YYYY-MM-DD | [Description of task]  |
+| 2026-11-01 | Part 2: added a mutex to my_timer.c so concurrent reads of /proc/timer can't corrupt the last-read time;
+| 2026-11-02 | Part 3a: reviewed syscalls.c and the patch script's table/prototype edits for 6.16; ran test-syscalls on the custom kernel.
+| 2026-11-02 | Part 3f:  reviewed the LOOK scheduling: unload, then FIFO load within 5 pets / 50 lbs, checked the floor range against the provided producer.
 
 
 ## Meetings
