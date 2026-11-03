@@ -228,10 +228,18 @@ Each member records their contributions here.
 
 | Date       | Work Completed / Notes |
 |------------|------------------------|
-| 2026-11-01 | Part 1: wrote `empty.c`, `part1.c` and Makefile; verified `part1.trace` has 5 more syscalls than `empty.trace`. |
-| 2026-11-01 | Part 2: scaffolded `my_timer` module and Makefile; compiles against the installed kernel headers. |
-| 2026-11-01 | Part 3: drafted `part3/syscalls.c` and the `elevator` module (`part3/src/elevator.c`); compiles, not yet run on the custom kernel. |
-| 2026-11-01 | Updated this README with group members and division of labor. |
+| 2026-11-01 | Part 1: wrote `empty.c`, `part1.c` and the Makefile with Claude Code (AI assistant); verified `part1.trace` has exactly 5 more system calls than `empty.trace`. |
+| 2026-11-01 | Part 2: scaffolded the `my_timer` module and Makefile with Claude Code; compiles against the kernel headers. |
+| 2026-11-01 | Part 3c/3e/3f: Claude Code drafted `part3/syscalls.c`, `patch_kernel.sh` and the `elevator` module (kthread, mutex, LOOK scheduling). I reviewed the drafts and ran them; Pedro and Sarah reviewed them afterwards. |
+| 2026-11-02 | Part 3b: set up the VM (6 GB RAM), downloaded Linux 6.16.12, applied `patch_kernel.sh`, configured (`localmodconfig`) and built the kernel, and fixed the build errors (missing `gawk`, empty trusted-keys settings, MODVERSIONS). Ran `modules_install` and `make install` myself. |
+| 2026-11-02 | Part 3b: GRUB booted the newest installed kernel (7.0) by default; made the menu visible, booted 6.16.12 and confirmed `uname -r`. Built and loaded `syscheck.ko`; `test-syscalls` found all three new system calls. |
+| 2026-11-03 | Part 2 test on 6.16.12: loaded `my_timer.ko`, two `cat /proc/timer` reads 2 s apart gave an elapsed time of 2.03 s, and `/proc/timer` disappeared after `rmmod`. |
+| 2026-11-03 | Part 3 test on 6.16.12: loaded `elevator.ko` and ran `producer`/`consumer`. Requests with floor 6 returned 1; load peaked at 48 lbs / 4 pets; the elevator went up, reversed and returned to IDLE; pets boarded FIFO; `start` while running and `stop` while stopping returned 1; `stop` delivered the pets on board and went OFFLINE; requests made while stopping stayed queued and were served after a restart (12 of 12 valid pets serviced). `rmmod` left no errors in `dmesg`. |
+| 2026-11-03 | Pulled Pedro's and Sarah's commits, rebuilt both modules on 6.16.12 and re-ran the tests; updated this README. |
+
+**AI assistance:** Claude Code (Anthropic) wrote most of the first draft of the code in this
+repository, including parts assigned to other members, and I ran, tested and committed it. The
+other members reviewed and changed it afterwards (see their logs and the commit history).
 
 ### Sarah
 
@@ -250,9 +258,15 @@ Document in-person meetings, their purpose, and what was discussed.
 | YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
 
 ## Bugs
-- Part 2 and Part 3 have not yet been loaded and tested on the 6.16.x kernel.
+- No known bugs. Part 2 and Part 3 were loaded and tested on the custom 6.16.12 kernel
+  (see the development log).
 - A system call that is in progress while `rmmod elevator` runs could still execute module code
   being unloaded. Stop the elevator and let system calls finish before removing the module.
+- The provided `test-syscalls.c` prints `stop_elevator` for the first (`start_elevator`) check. This
+  is a typo in the starter file, so the starter tests were left unchanged.
+- GRUB boots the newest kernel by default. After the kernel is installed, hold Shift (BIOS) during
+  boot and choose 6.16.12, otherwise the `STUB_*` symbols are missing and `elevator.ko` fails to
+  load.
 
 ## Considerations
 - Build the kernel in a VM and take a snapshot first, so a broken kernel can be rolled back.
