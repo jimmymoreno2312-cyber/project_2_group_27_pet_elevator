@@ -6,6 +6,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/mutex.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/timekeeping.h>
@@ -13,8 +14,11 @@
 #define PROC_NAME "timer"
 
 MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Group 27");
 MODULE_DESCRIPTION("Prints current time and time elapsed since the last read");
 
+/* Protects last_read and last_valid against concurrent reads of /proc/timer. */
+static DEFINE_MUTEX(timer_lock);
 static struct timespec64 last_read;	/* time of the previous read */
 static bool last_valid;			/* false until the first read happens */
 
@@ -22,6 +26,7 @@ static int timer_show(struct seq_file *m, void *v)
 {
 	struct timespec64 now, delta;
 
+	mutex_lock(&timer_lock);
 	ktime_get_real_ts64(&now);
 	seq_printf(m, "current time: %lld.%09ld\n", (long long)now.tv_sec, now.tv_nsec);
 
@@ -33,6 +38,7 @@ static int timer_show(struct seq_file *m, void *v)
 
 	last_read = now;
 	last_valid = true;
+	mutex_unlock(&timer_lock);
 	return 0;
 }
 
