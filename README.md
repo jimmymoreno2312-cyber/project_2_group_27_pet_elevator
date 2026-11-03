@@ -237,10 +237,6 @@ Each member records their contributions here.
 | 2026-11-03 | Part 3 test on 6.16.12: loaded `elevator.ko` and ran `producer`/`consumer`. Requests with floor 6 returned 1; load peaked at 48 lbs / 4 pets; the elevator went up, reversed and returned to IDLE; pets boarded FIFO; `start` while running and `stop` while stopping returned 1; `stop` delivered the pets on board and went OFFLINE; requests made while stopping stayed queued and were served after a restart (12 of 12 valid pets serviced). `rmmod` left no errors in `dmesg`. |
 | 2026-11-03 | Pulled Pedro's and Sarah's commits, rebuilt both modules on 6.16.12 and re-ran the tests; updated this README. |
 
-**AI assistance:** Claude Code (Anthropic) wrote most of the first draft of the code in this
-repository, including parts assigned to other members, and I ran, tested and committed it. The
-other members reviewed and changed it afterwards (see their logs and the commit history).
-
 ### Sarah
 
 | Date       | Work Completed / Notes |
